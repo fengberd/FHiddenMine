@@ -15,16 +15,17 @@ use pocketmine\network\Network;
 use pocketmine\level\format\mcregion\Chunk;
 use pocketmine\level\format\mcregion\McRegion;
 
+use pocketmine\event\block\BlockBreakEvent;
+
 use pocketmine\network\protocol\UpdateBlockPacket;
-use pocketmine\network\protocol\RemoveBlockPacket;
 use pocketmine\network\protocol\FullChunkDataPacket;
 
 use pocketmine\event\server\DataPacketSendEvent;
-use pocketmine\event\server\DataPacketReceiveEvent;
 
 class Main extends PluginBase implements Listener
 {
 	private static $obj = null;
+	public static $NL="\n";
 	
 	public static function getInstance()
 	{
@@ -35,22 +36,27 @@ class Main extends PluginBase implements Listener
 	{
 		if(!self::$obj instanceof Main)
 		{
-			self::$obj = $this;
+			self::$obj=$this;
 		}
-		@mkdir($this->getDataFolder() ,0777 ,true);
-		$this->config=new Config($this->getDataFolder() . "config.yml", Config::YAML, array());
-		if(!$this->config->exists("ProtectWorlds"))
-		{
-			$this->config->set("ProtectWorlds",array());
-		}
-		$this->ProtectWorlds=$this->config->get("ProtectWorlds");
-		if(!$this->config->exists("scanHeight"))
-		{
-			$this->config->set("scanHeight",48);
-		}
-		$this->scanHeight=(int)$this->config->get("scanHeight");
-		$this->config->save();
+		$this->loadConfig();
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+	}
+	
+	public function loadConfig()
+	{
+		@mkdir($this->getDataFolder(),0777,true);
+		$this->config=new Config($this->getDataFolder().'config.yml',Config::YAML,array());
+		if(!$this->config->exists('ProtectWorlds'))
+		{
+			$this->config->set('ProtectWorlds',array());
+		}
+		$this->ProtectWorlds=$this->config->get('ProtectWorlds');
+		if(!$this->config->exists('scanHeight'))
+		{
+			$this->config->set('scanHeight',48);
+		}
+		$this->scanHeight=(int)$this->config->get('scanHeight');
+		$this->config->save();
 	}
 
 	public function onDataPacketSend(DataPacketSendEvent $event)
@@ -174,7 +180,7 @@ class Main extends PluginBase implements Listener
 				}
 			}
 			$nbt=new \pocketmine\nbt\NBT(\pocketmine\nbt\NBT::LITTLE_ENDIAN);
-			$tiles="";
+			$tiles='';
 			foreach($chunk->getTiles() as $tile)
 			{
 				if($tile instanceof \pocketmine\tile\Spawnable)
@@ -188,11 +194,11 @@ class Main extends PluginBase implements Listener
 				$chunk->getBlockSkyLightArray().
 				$chunk->getBlockLightArray().
 				$chunk->getBiomeIdArray().
-				\pack("N*", ...$chunk->getBiomeColorArray()).
+				\pack('N*', ...$chunk->getBiomeColorArray()).
 				$tiles;
 			$pk->noCheck=true;
 			$Player->batchDataPacket($pk->setChannel(Network::CHANNEL_WORLD_CHUNKS));
-			$Player->usedChunks[\PHP_INT_SIZE === 8 ? ((($x) & 0xFFFFFFFF) << 32) | (( $z) & 0xFFFFFFFF) : ($x) . ":" . ( $z)] = \true;
+			$Player->usedChunks[\PHP_INT_SIZE === 8 ? ((($x) & 0xFFFFFFFF) << 32) | (( $z) & 0xFFFFFFFF) : ($x) . ':' . ( $z)] = \true;
 			//$Player->chunkLoadCount++;
 		}
 		unset($pk,$cnt,$nbt,$tile,$event,$Player,$blocks,$chunk,$tiles,$ids,$i);
@@ -200,39 +206,58 @@ class Main extends PluginBase implements Listener
 	
 	public function saveData()
 	{
-		$this->config->set("ProtectWorlds",$this->ProtectWorlds);
+		$this->config->set('ProtectWorlds',$this->ProtectWorlds);
 		$this->config->save();
 	}
 	
-	public function onDataPacketReceive(DataPacketReceiveEvent $event)
+	/**
+	 * @param BlockBreakEvent $event
+	 *
+	 * @priority MONITOR
+	 */
+	public function onBlockBreak(BlockBreakEvent $event)
 	{
-		$pk=$event->getPacket();
-		if(in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds) && $pk instanceof RemoveBlockPacket)
+		if(!$event->isCancelled() && in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds))
 		{
-			$level=$event->getPlayer()->getLevel();
-			$this->PacketSetBlock($event->getPlayer(),new Vector3($pk->x+1,$pk->y,$pk->z));
-			$this->PacketSetBlock($event->getPlayer(),new Vector3($pk->x-1,$pk->y,$pk->z));
-			$this->PacketSetBlock($event->getPlayer(),new Vector3($pk->x,$pk->y+1,$pk->z));
-			$this->PacketSetBlock($event->getPlayer(),new Vector3($pk->x,$pk->y-1,$pk->z));
-			$this->PacketSetBlock($event->getPlayer(),new Vector3($pk->x,$pk->y,$pk->z+1));
-			$this->PacketSetBlock($event->getPlayer(),new Vector3($pk->x,$pk->y,$pk->z-1));
+			$pos=$event->getBlock();
+			$pk=new UpdateBlockPacket();
+			$block=new Vector3($pos->getX()-1,$pos->getZ(),$pos->getY());
+			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
+			
+			$block=new Vector3($pos->getX()+1,$pos->getZ(),$pos->getY());
+			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
+			
+			$block=new Vector3($pos->getX(),$pos->getZ()+1,$pos->getY());
+			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
+			
+			$block=new Vector3($pos->getX(),$pos->getZ()-1,$pos->getY());
+			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
+			
+			$block=new Vector3($pos->getX(),$pos->getZ(),$pos->getY()+1);
+			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
+			
+			$block=new Vector3($pos->getX(),$pos->getZ(),$pos->getY()-1);
+			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
+			foreach($event->getPlayer()->getLevel()->getPlayers() as $p)
+			{
+				$p->getLevel()->sendBlocks([$p],$send);
+				unset($p);
+			}
+			unset($block,$pk,$event,$pos,$send);
 		}
-		unset($pk,$event,$level);
+		unset($event,$res,$msg);
 	}
 	
-	public function PacketSetBlock($player,$pos)
+	public function PacketSetBlock($player,$x,$y,$z)
 	{
 		$pk=new UpdateBlockPacket();
-		$pk->x=$pos->x;
-		$pk->y=$pos->y;
-		$pk->z=$pos->z;
+		$pk->x=$x;
+		$pk->y=$y;
+		$pk->z=$z;
 		$block=$player->getLevel()->getBlock($pos);
 		$pk->block=$block->getId();
 		$pk->meta=$block->getDamage();
-		foreach($player->getLevel()->getPlayers() as $p)
-		{
-			$p->dataPacket($pk);
-		}
+		
 	}
 	
 	public function onCommand(CommandSender $sender, Command $command, $label, array $arg)
@@ -242,63 +267,51 @@ class Main extends PluginBase implements Listener
 		array_splice($arg,0,1);
 		switch(strtolower($data))
 		{
-		case "reload":
-			@mkdir($this->getDataFolder() ,0777 ,true);
-			$this->config=new Config($this->getDataFolder() . "config.yml", Config::YAML, array());
-			if(!$this->config->exists("ProtectWorlds"))
-			{
-				$this->config->set("ProtectWorlds",array());
-			}
-			$this->ProtectWorlds=$this->config->get("ProtectWorlds");
-			if(!$this->config->exists("scanHeight"))
-			{
-				$this->config->set("scanHeight",48);
-			}
-			$this->scanHeight=(int)$this->config->get("scanHeight");
-			$this->config->save();
-			$sender->sendMessage("[FHiddenMine] 重载完成");
+		case 'reload':
+			$this->loadConfig();
+			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 重载完成');
 			break;
-		case "add":
+		case 'add':
 			if(!isset($arg[0])){unset($sender,$cmd,$label,$arg);return false;};
 			if(in_array($arg[0],$this->ProtectWorlds))
 			{
-				$sender->sendMessage("[FHiddenMine] 该世界已在假矿保护列表中");
+				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] 该世界已在假矿保护列表中');
 				break;
 			}
 			else
 			{
 				$this->ProtectWorlds[]=$arg[0];
-				$sender->sendMessage("[FHiddenMine] 成功把世界{$arg[0]}添加到假矿保护列表");
+				$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 成功把世界 {$arg[0]} 添加到假矿保护列表');
 			}
 			$this->saveData();
 			break;
-		case "remove":
+		case 'remove':
 			if(!isset($arg[0])){unset($sender,$cmd,$label,$arg);return false;};
 			foreach($this->ProtectWorlds as $key=>$val)
 			{
 				if($val==$arg[0])
 				{
 					array_splice($this->ProtectWorlds,$key,1);
-					$sender->sendMessage("[FHiddenMine] 已将世界{$arg[0]}从假矿保护列表中移除");
+					$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 已将世界 {$arg[0]} 从假矿保护列表中移除');
 					break;
 				}
 			}
 			unset($key,$val);
 			$this->saveData();
 			break;
-		case "list":
-			$ls="";
+		case 'list':
+			$ls='';
 			foreach($this->ProtectWorlds as $key=>$val)
 			{
-				$ls.="- ".$val."\n";
+				$ls.=TextFormat::YELLOW.'- '.$val.self::$NL;
 			}
-			$sender->sendMessage("======假矿保护列表======\n{$ls}========================");
+			$sender->sendMessage(TextFormat::GREEN.'======Protect List======'.self::$NL.$ls.TextFormat::GREEN.'========================');
 			unset($key,$val,$ls);
 			break;
-		case "clear":
+		case 'clear':
 			$this->ProtectWorlds=array();
 			$this->saveData();
-			$sender->sendMessage("[FHiddenMine] 保护列表已清空");
+			$sender->sendMessage(TextFormat::GREEN.[FHiddenMine] 保护列表已清空');
 			break;
 		default:
 			unset($sender,$cmd,$label,$arg);
