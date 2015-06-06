@@ -11,6 +11,7 @@ use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\utils\Config;
 use pocketmine\network\Network;
+use pocketmine\utils\TextFormat;
 
 use pocketmine\level\format\mcregion\Chunk;
 use pocketmine\level\format\mcregion\McRegion;
@@ -199,7 +200,6 @@ class Main extends PluginBase implements Listener
 			$pk->noCheck=true;
 			$Player->batchDataPacket($pk->setChannel(Network::CHANNEL_WORLD_CHUNKS));
 			$Player->usedChunks[\PHP_INT_SIZE === 8 ? ((($x) & 0xFFFFFFFF) << 32) | (( $z) & 0xFFFFFFFF) : ($x) . ':' . ( $z)] = \true;
-			//$Player->chunkLoadCount++;
 		}
 		unset($pk,$cnt,$nbt,$tile,$event,$Player,$blocks,$chunk,$tiles,$ids,$i);
 	}
@@ -220,44 +220,19 @@ class Main extends PluginBase implements Listener
 		if(!$event->isCancelled() && in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds))
 		{
 			$pos=$event->getBlock();
-			$pk=new UpdateBlockPacket();
-			$block=new Vector3($pos->getX()-1,$pos->getZ(),$pos->getY());
-			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
+			$level=$pos->getLevel();
 			
-			$block=new Vector3($pos->getX()+1,$pos->getZ(),$pos->getY());
-			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
+			$send[]=$level->getBlock(new Vector3($pos->getX()-1,$pos->getY(),$pos->getZ()));
+			$send[]=$level->getBlock(new Vector3($pos->getX()+1,$pos->getY(),$pos->getZ()));
+			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY()+1,$pos->getZ()));
+			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY()-1,$pos->getZ()));
+			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY(),$pos->getZ()+1));
+			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY(),$pos->getZ()-1));
 			
-			$block=new Vector3($pos->getX(),$pos->getZ()+1,$pos->getY());
-			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
-			
-			$block=new Vector3($pos->getX(),$pos->getZ()-1,$pos->getY());
-			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
-			
-			$block=new Vector3($pos->getX(),$pos->getZ(),$pos->getY()+1);
-			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
-			
-			$block=new Vector3($pos->getX(),$pos->getZ(),$pos->getY()-1);
-			$send[]=$event->getPlayer()->getLevel()->getBlock($block);
-			foreach($event->getPlayer()->getLevel()->getPlayers() as $p)
-			{
-				$p->getLevel()->sendBlocks([$p],$send);
-				unset($p);
-			}
-			unset($block,$pk,$event,$pos,$send);
+			$event->getPlayer()->getLevel()->sendBlocks($event->getPlayer()->getLevel()->getPlayers(),$send,UpdateBlockPacket::FLAG_ALL);
+			unset($event,$pos,$send);
 		}
 		unset($event,$res,$msg);
-	}
-	
-	public function PacketSetBlock($player,$x,$y,$z)
-	{
-		$pk=new UpdateBlockPacket();
-		$pk->x=$x;
-		$pk->y=$y;
-		$pk->z=$z;
-		$block=$player->getLevel()->getBlock($pos);
-		$pk->block=$block->getId();
-		$pk->meta=$block->getDamage();
-		
 	}
 	
 	public function onCommand(CommandSender $sender, Command $command, $label, array $arg)
@@ -305,13 +280,13 @@ class Main extends PluginBase implements Listener
 			{
 				$ls.=TextFormat::YELLOW.'- '.$val.self::$NL;
 			}
-			$sender->sendMessage(TextFormat::GREEN.'======Protect List======'.self::$NL.$ls.TextFormat::GREEN.'========================');
+			$sender->sendMessage(TextFormat::GREEN.'======Protect List======'.self::$NL.$ls.TextFormat::GREEN.'=====================');
 			unset($key,$val,$ls);
 			break;
 		case 'clear':
 			$this->ProtectWorlds=array();
 			$this->saveData();
-			$sender->sendMessage(TextFormat::GREEN.[FHiddenMine] 保护列表已清空');
+			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 保护列表已清空');
 			break;
 		default:
 			unset($sender,$cmd,$label,$arg);

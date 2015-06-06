@@ -1,11 +1,11 @@
 name: FHiddenMine
 main: FHiddenMine\Main
-version: 1.0.1
+version: 1.0.2
 api: [1.0.0]
 load: POSTWORLD
 author: FENGberd
 commands:
- fhm:
+ hidemine:
   description: "FHiddenMine主命令"
-  usage: "/fhm <reload|add <world>|remove <world>|list|clear>"
-  permission: op
+  usage: "/hidemine [reload|add <world>|remove <world>|list|clear]"
+  permission: false
