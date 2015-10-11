@@ -1,32 +1,18 @@
 <?php
 namespace FHiddenMine;
 
-use pocketmine\plugin\PluginBase;
-use pocketmine\event\Listener;
-use pocketmine\command\Command;
-use pocketmine\command\CommandSender;
-
-use pocketmine\Player;
-use pocketmine\level\Level;
+use pocketmine\nbt\NBT;
 use pocketmine\math\Vector3;
 use pocketmine\utils\Config;
 use pocketmine\network\Network;
 use pocketmine\utils\TextFormat;
 
-use pocketmine\level\format\mcregion\Chunk;
-use pocketmine\level\format\mcregion\McRegion;
-
-use pocketmine\event\block\BlockBreakEvent;
-
-use pocketmine\network\protocol\UpdateBlockPacket;
-use pocketmine\network\protocol\FullChunkDataPacket;
-
-use pocketmine\event\server\DataPacketSendEvent;
-
-class Main extends PluginBase implements Listener
+class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Listener
 {
-	private static $obj = null;
+	private static $obj=null;
 	public static $NL="\n";
+	public $ores=array(14,15,16,21,56,73,74,129);
+	public $filter=array(0,8,9,10,11,20,26,27,30,31,32,37,38,39,40,44,50,63,64,65,66,68,71,81,83,85,96,101,102,104,105,106,107,126,141,142);
 	
 	public static function getInstance()
 	{
@@ -40,7 +26,7 @@ class Main extends PluginBase implements Listener
 			self::$obj=$this;
 		}
 		$this->loadConfig();
-		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+		$this->getServer()->getPluginManager()->registerEvents($this,$this);
 	}
 	
 	public function loadConfig()
@@ -59,35 +45,29 @@ class Main extends PluginBase implements Listener
 		$this->scanHeight=(int)$this->config->get('scanHeight');
 		$this->config->save();
 	}
-
-	public function onDataPacketSend(DataPacketSendEvent $event)
+	
+	/*
+	 * @priority MONITOR
+	 */
+	public function onDataPacketSend(\pocketmine\event\server\DataPacketSendEvent $event)
 	{
-		if(in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds) && !$event->getPlayer()->isOp() && $event->getPacket() instanceof FullChunkDataPacket && !isset($event->getPacket()->noCheck))
+		if(!$event->isCancelled() && $event->getPacket() instanceof \pocketmine\network\protocol\FullChunkDataPacket && in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds) && !$event->getPlayer()->isOp())
 		{
-			$event->setCancelled(true);
 			$pk=$event->getPacket();
-			$Player=$event->getPlayer();
-			$level=$Player->getLevel();
+			$level=$event->getPlayer()->getLevel();
 			$chunk=$level->getChunk($pk->chunkX,$pk->chunkZ,false);
 			$blocks=$chunk->getBlockIdArray();
+			echo("0\n");
 			for($x=0;$x<16;$x++)
 			{
 				for($z=0;$z<16;$z++)
 				{
 					for($y=0;$y<$this->scanHeight;$y++)
 					{
-						switch(ord($blocks{($x << 11) | ($z << 7) | $y}))
+						if(in_array(ord($blocks{($x << 11) | ($z << 7) | $y}),$this->ores))
 						{
-						case 14:
-						case 15:
-						case 16:
-						case 21:
-						case 56:
-						case 73:
-						case 74:
-						case 129:
 							$ids=array();
-							if($x+1>15)
+							if($x>14)
 							{
 								$ids[]=$level->getBlockIdAt($pk->chunkX*16+$x+1,$y,$pk->chunkZ*16+$z);
 							}
@@ -95,7 +75,7 @@ class Main extends PluginBase implements Listener
 							{
 								$ids[]=ord($blocks{($x+1 << 11) | ($z << 7) | $y});
 							}
-							if($x-1<0)
+							if($x<1)
 							{
 								$ids[]=$level->getBlockIdAt($pk->chunkX*16+$x-1,$y,$pk->chunkZ*16+$z);
 							}
@@ -105,7 +85,7 @@ class Main extends PluginBase implements Listener
 							}
 							$ids[]=ord($blocks{($x << 11) | ($z << 7) | $y+1});
 							$ids[]=ord($blocks{($x << 11) | ($z << 7) | $y-1});
-							if($z+1>15)
+							if($z>14)
 							{
 								$ids[]=$level->getBlockIdAt($pk->chunkX*16+$x,$y,$pk->chunkZ*16+$z+1);
 							}
@@ -113,7 +93,7 @@ class Main extends PluginBase implements Listener
 							{
 								$ids[]=ord($blocks{($x << 11) | ($z+1 << 7) | $y});
 							}
-							if($z-1<0)
+							if($z<1)
 							{
 								$ids[]=$level->getBlockIdAt($pk->chunkX*16+$x,$y,$pk->chunkZ*16+$z-1);
 							}
@@ -124,84 +104,58 @@ class Main extends PluginBase implements Listener
 							$have=false;
 							foreach($ids as $i)
 							{
-								switch($i)
+								if(in_array($i,$this->filter))
 								{
-								case 0:
-								case 8:
-								case 9:
-								case 10:
-								case 11:
-								case 20:
-								case 26:
-								case 27:
-								case 30:
-								case 31:
-								case 32:
-								case 37:
-								case 38:
-								case 39:
-								case 40:
-								case 44:
-								case 50:
-								case 63:
-								case 64:
-								case 65:
-								case 66:
-								case 68:
-								case 71:
-								case 81:
-								case 83:
-								case 85:
-								case 96:
-								case 101:
-								case 102:
-								case 104:
-								case 105:
-								case 106:
-								case 107:
-								case 126:
-								case 141:
-								case 142:
 									$have=true;
+									unset($i);
 									break;
 								}
-								if($have)
-								{
-									break;
-								}
+								unset($i);
 							}
-							if($have)
+							if(!$have)
 							{
-								break;
+								$blocks{($x << 11) | ($z << 7) | $y}=chr(1);
 							}
-							$blocks{($x << 11) | ($z << 7) | $y} = chr(1);
-							break;
+							unset($ids);
 						}
 					}
 				}
 			}
-			$nbt=new \pocketmine\nbt\NBT(\pocketmine\nbt\NBT::LITTLE_ENDIAN);
 			$tiles='';
-			foreach($chunk->getTiles() as $tile)
+			if(count($chunk->getTiles())>0)
 			{
-				if($tile instanceof \pocketmine\tile\Spawnable)
+				$nbt=new NBT(NBT::LITTLE_ENDIAN);
+				$list=array();
+				foreach($chunk->getTiles() as $tile)
 				{
-					$nbt->setData($tile->getSpawnCompound());
-					$tiles.=$nbt->write();
+					if($tile instanceof \pocketmine\tile\Spawnable)
+					{
+						$list[]=$tile->getSpawnCompound();
+					}
+					unset($tile);
 				}
+				$nbt->setData($list);
+				$tiles.=$nbt->write();
+				unset($list,$nbt);
+			}
+			$extraData=new \pocketmine\utils\BinaryStream();
+			$extraData->putLInt(count($chunk->getBlockExtraDataArray()));
+			foreach($chunk->getBlockExtraDataArray() as $key=>$value)
+			{
+				$extraData->putLInt($key);
+				$extraData->putLShort($value);
+				unset($key,$value);
 			}
 			$pk->data=$blocks.
 				$chunk->getBlockDataArray().
 				$chunk->getBlockSkyLightArray().
 				$chunk->getBlockLightArray().
-				$chunk->getBiomeIdArray().
-				\pack('N*', ...$chunk->getBiomeColorArray()).
+				pack("C*", ...$chunk->getHeightMapArray()).
+				pack('N*', ...$chunk->getBiomeColorArray()).
+				$extraData->getBuffer().
 				$tiles;
-			$pk->noCheck=true;
-			$Player->batchDataPacket($pk->setChannel(Network::CHANNEL_WORLD_CHUNKS));
-			$Player->usedChunks[\PHP_INT_SIZE === 8 ? ((($x) & 0xFFFFFFFF) << 32) | (( $z) & 0xFFFFFFFF) : ($x) . ':' . ( $z)] = \true;
 		}
-		unset($pk,$cnt,$nbt,$tile,$event,$Player,$blocks,$chunk,$tiles,$ids,$i);
+		unset($pk,$nbt,$event,$blocks,$chunk,$tiles,$x,$y,$z);
 	}
 	
 	public function saveData()
@@ -210,78 +164,80 @@ class Main extends PluginBase implements Listener
 		$this->config->save();
 	}
 	
-	/**
-	 * @param BlockBreakEvent $event
-	 *
+	/*
 	 * @priority MONITOR
 	 */
-	public function onBlockBreak(BlockBreakEvent $event)
+	public function onBlockBreak(\pocketmine\event\block\BlockBreakEvent $event)
 	{
 		if(!$event->isCancelled() && in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds))
 		{
 			$pos=$event->getBlock();
 			$level=$pos->getLevel();
-			
 			$send[]=$level->getBlock(new Vector3($pos->getX()-1,$pos->getY(),$pos->getZ()));
 			$send[]=$level->getBlock(new Vector3($pos->getX()+1,$pos->getY(),$pos->getZ()));
 			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY()+1,$pos->getZ()));
 			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY()-1,$pos->getZ()));
 			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY(),$pos->getZ()+1));
 			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY(),$pos->getZ()-1));
-			
-			$event->getPlayer()->getLevel()->sendBlocks($event->getPlayer()->getLevel()->getPlayers(),$send,UpdateBlockPacket::FLAG_ALL);
-			unset($event,$pos,$send);
+			$event->getPlayer()->getLevel()->sendBlocks($event->getPlayer()->getLevel()->getPlayers(),$send,\pocketmine\network\protocol\UpdateBlockPacket::FLAG_ALL);
 		}
-		unset($event,$res,$msg);
+		unset($event,$pos,$send);
 	}
 	
-	public function onCommand(CommandSender $sender, Command $command, $label, array $arg)
+	public function onCommand(\pocketmine\command\CommandSender $sender,\pocketmine\command\Command $command,$label,array $args)
 	{
-		if(!isset($arg[0])){unset($sender,$cmd,$label,$arg);return false;};
-		$data=$arg[0];
-		array_splice($arg,0,1);
-		switch(strtolower($data))
+		if(!isset($args[0]))
+		{
+			unset($sender,$cmd,$label,$args);
+			return false;
+		}
+		switch(strtolower($args[0]))
 		{
 		case 'reload':
 			$this->loadConfig();
 			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 重载完成');
 			break;
 		case 'add':
-			if(!isset($arg[0])){unset($sender,$cmd,$label,$arg);return false;};
-			if(in_array($arg[0],$this->ProtectWorlds))
+			if(!isset($args[1]))
+			{
+				unset($sender,$cmd,$label,$args);
+				return false;
+			}
+			if(in_array($args[1],$this->ProtectWorlds))
 			{
 				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] 该世界已在假矿保护列表中');
 				break;
 			}
-			else
-			{
-				$this->ProtectWorlds[]=$arg[0];
-				$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 成功把世界 {$arg[0]} 添加到假矿保护列表');
-			}
+			$this->ProtectWorlds[]=$args[1];
+			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 成功把世界 '.$args[1].' 添加到假矿保护列表');
 			$this->saveData();
 			break;
 		case 'remove':
-			if(!isset($arg[0])){unset($sender,$cmd,$label,$arg);return false;};
-			foreach($this->ProtectWorlds as $key=>$val)
+			if(!isset($args[1]))
 			{
-				if($val==$arg[0])
-				{
-					array_splice($this->ProtectWorlds,$key,1);
-					$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 已将世界 {$arg[0]} 从假矿保护列表中移除');
-					break;
-				}
+				unset($sender,$cmd,$label,$args);
+				return false;
 			}
-			unset($key,$val);
+			if(($s=array_search($args[1],$this->ProtectWorlds))===false)
+			{
+				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] 该世界不在假矿保护列表中');
+				unset($s);
+				break;
+			}
+			array_splice($this->ProtectWorlds,$s,1);
+			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 成功把世界 '.$args[1].' 从保护列表移除');
 			$this->saveData();
+			unset($s);
 			break;
 		case 'list':
 			$ls='';
-			foreach($this->ProtectWorlds as $key=>$val)
+			foreach($this->ProtectWorlds as $val)
 			{
 				$ls.=TextFormat::YELLOW.'- '.$val.self::$NL;
+				unset($val);
 			}
-			$sender->sendMessage(TextFormat::GREEN.'======Protect List======'.self::$NL.$ls.TextFormat::GREEN.'=====================');
-			unset($key,$val,$ls);
+			$sender->sendMessage(TextFormat::GREEN.'======'.TextFormat::YELLOW.'Protect List'.TextFormat::GREEN.'======'.self::$NL.$ls.TextFormat::GREEN.'========================');
+			unset($ls);
 			break;
 		case 'clear':
 			$this->ProtectWorlds=array();
@@ -289,11 +245,10 @@ class Main extends PluginBase implements Listener
 			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 保护列表已清空');
 			break;
 		default:
-			unset($sender,$cmd,$label,$arg);
+			unset($sender,$cmd,$label,$args);
 			return false;
-			break;
 		}
-		unset($sender,$cmd,$label,$arg);
+		unset($sender,$cmd,$label,$args);
 		return true;
 	}
 }
