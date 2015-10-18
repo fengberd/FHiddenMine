@@ -17,6 +17,7 @@ It can check and hide the ores under the Y position you set when PocketMine send
 /hidemine reload - Reload config.yml
 
 # <font size=30 color='red'>WARNING</font>
+You should set "chunk-sending.cache-chunks" to false in pocketmine.yml else this plugin will not work.
 Don't add any worlds format <font color='red'>NOT MCRegion</font> in protect list!<br />
 If you do,your world will be broken!<br />
 (Anvil world file is *.mca,and MCRegion world file is *.mcr,this plugin can only work with MCRegion worlds)
