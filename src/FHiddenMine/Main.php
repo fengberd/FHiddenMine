@@ -172,15 +172,15 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		{
 			$pos=$event->getBlock();
 			$level=$pos->getLevel();
-			$send[]=$level->getBlock(new Vector3($pos->getX()-1,$pos->getY(),$pos->getZ()));
-			$send[]=$level->getBlock(new Vector3($pos->getX()+1,$pos->getY(),$pos->getZ()));
-			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY()+1,$pos->getZ()));
-			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY()-1,$pos->getZ()));
-			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY(),$pos->getZ()+1));
-			$send[]=$level->getBlock(new Vector3($pos->getX(),$pos->getY(),$pos->getZ()-1));
-			$event->getPlayer()->getLevel()->sendBlocks($event->getPlayer()->getLevel()->getPlayers(),$send,\pocketmine\network\protocol\UpdateBlockPacket::FLAG_ALL);
+			$event->getPlayer()->getLevel()->sendBlocks($event->getPlayer()->getLevel()->getPlayers(),array(
+				$level->getBlock(new Vector3($pos->getX()-1,$pos->getY(),$pos->getZ())),
+				$level->getBlock(new Vector3($pos->getX()+1,$pos->getY(),$pos->getZ())),
+				$level->getBlock(new Vector3($pos->getX(),$pos->getY()+1,$pos->getZ())),
+				$level->getBlock(new Vector3($pos->getX(),$pos->getY()-1,$pos->getZ())),
+				$level->getBlock(new Vector3($pos->getX(),$pos->getY(),$pos->getZ()+1)),
+				$level->getBlock(new Vector3($pos->getX(),$pos->getY(),$pos->getZ()-1))),\pocketmine\network\protocol\UpdateBlockPacket::FLAG_ALL);
 		}
-		unset($event,$pos,$send);
+		unset($event,$pos);
 	}
 	
 	public function onCommand(\pocketmine\command\CommandSender $sender,\pocketmine\command\Command $command,$label,array $args)
@@ -194,7 +194,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		{
 		case 'reload':
 			$this->loadConfig();
-			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 重载完成');
+			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Reload successfully.');
 			break;
 		case 'add':
 			if(!isset($args[1]))
@@ -204,11 +204,11 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 			}
 			if(in_array($args[1],$this->ProtectWorlds))
 			{
-				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] 该世界已在假矿保护列表中');
+				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] This world already in protect list.');
 				break;
 			}
 			$this->ProtectWorlds[]=$args[1];
-			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 成功把世界 '.$args[1].' 添加到假矿保护列表');
+			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Add successfully.');
 			$this->saveData();
 			break;
 		case 'remove':
@@ -219,12 +219,12 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 			}
 			if(($s=array_search($args[1],$this->ProtectWorlds))===false)
 			{
-				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] 该世界不在假矿保护列表中');
+				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] This world isn\'t in protect list.');
 				unset($s);
 				break;
 			}
 			array_splice($this->ProtectWorlds,$s,1);
-			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 成功把世界 '.$args[1].' 从保护列表移除');
+			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Remove successfully.');
 			$this->saveData();
 			unset($s);
 			break;
@@ -241,7 +241,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		case 'clear':
 			$this->ProtectWorlds=array();
 			$this->saveData();
-			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] 保护列表已清空');
+			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Clear successfully.');
 			break;
 		default:
 			unset($sender,$cmd,$label,$args);
@@ -251,4 +251,3 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		return true;
 	}
 }
-?>
