@@ -1,22 +1,22 @@
-# FHiddenMine
-The nice plugin to hide ores and make x-ray modscript be INVALID<br />
-It will check and hide the ores under a Y position your set when PocketMine sending chunk to player.(default:48)
+# 我先用<font size=30 color='red'>中文</font>说几句
+1.严禁将此插件转载到任何论坛、贴吧、QQ群,我不想被小学生倒卖<br />
+2.严禁修改此插件版权<br />
+3.严禁倒卖此插件<br />
+4.使用中出现问题请不要找我<br />
+5.我知道<font size=5 color='red'>说了白说</font>但还是想说一下,小天才不遵守上面几条请自行右上角
 
-Thanks for shog,now it works on PocketMine 1.5 without any other change for PocketMine.
-:P
+# FHiddenMine
+It's the best plugin to hide ores and make x-ray modscript be invalid.<br />
+It can check and hide the ores under the Y position you set when PocketMine sending a chunk to players(This plugin will be disabled for administrators).(default:48)
 
 # Commands
-/hidemine - Main command<br />
-/hidemine add <world> - Add the world to plugin protect list<br />
-/hidemine remove <world> - Remove the world from protect list<br />
-/hidemine list - Show the list of protected worlds<br />
+/hidemine - Display help message<br />
+/hidemine add <world> - Add a world to protect list<br />
+/hidemine remove <world> - Remove a world from protect list<br />
+/hidemine list - Display the worlds in protect list<br />
 /hidemine reload - Reload config.yml
 
-# <font size=30 color='red'>WARNING</font><br />
-Don't add any worlds format not <font color='red'>MCRegion</font> in protect list!<br />
-If you do,the world will be broken!<br />
-(Anvil world file is *.mca,and MCRegion world file is *.mcr,this plugin only support MCRegion maps.
-You can open "convert-format" in pocketmine.yml,then PocketMine will convert level format to MCRegion(maybe).
-
-# Other
-This plugin will disable for OP.
+# <font size=30 color='red'>WARNING</font>
+Don't add any worlds format <font color='red'>NOT MCRegion</font> in protect list!<br />
+If you do,your world will be broken!<br />
+(Anvil world file is *.mca,and MCRegion world file is *.mcr,this plugin can only work with MCRegion worlds)
