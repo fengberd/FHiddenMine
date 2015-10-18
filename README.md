@@ -20,5 +20,3 @@ You can open "convert-format" in pocketmine.yml,then PocketMine will convert lev
 
 # Other
 This plugin will disable for OP.
-
-<a href="http://download.fengberd.net/plugins/FHiddenMine/">Phar download</a>
