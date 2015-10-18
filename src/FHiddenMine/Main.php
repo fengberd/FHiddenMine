@@ -57,7 +57,6 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 			$level=$event->getPlayer()->getLevel();
 			$chunk=$level->getChunk($pk->chunkX,$pk->chunkZ,false);
 			$blocks=$chunk->getBlockIdArray();
-			echo("0\n");
 			for($x=0;$x<16;$x++)
 			{
 				for($z=0;$z<16;$z++)
