@@ -234,11 +234,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		{
 		case 'reload':
 			$this->loadConfig();
-<<<<<<< HEAD
-			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'重载完成');
-=======
-			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Reload successfully.');
->>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
+			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'Reload successful.');
 			break;
 		case 'add':
 			if(!isset($args[1]))
@@ -248,19 +244,11 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 			}
 			if(in_array($args[1],$this->ProtectWorlds))
 			{
-<<<<<<< HEAD
-				$sender->sendMessage('[FHiddenMine] '.TextFormat::RED.'该世界已在假矿保护列表中');
-=======
-				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] This world already in protect list.');
->>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
+				$sender->sendMessage('[FHiddenMine] '.TextFormat::RED.'This world already in the protect list.');
 				break;
 			}
 			$this->ProtectWorlds[]=$args[1];
-<<<<<<< HEAD
-			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'成功把世界 '.$args[1].' 添加到假矿保护列表');
-=======
-			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Add successfully.');
->>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
+			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'Successful to add world '.$args[1].' to protect list.');
 			$this->saveData();
 			break;
 		case 'remove':
@@ -271,20 +259,12 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 			}
 			if(($s=array_search($args[1],$this->ProtectWorlds))===false)
 			{
-<<<<<<< HEAD
-				$sender->sendMessage('[FHiddenMine] '.TextFormat::RED.'该世界不在假矿保护列表中');
-=======
-				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] This world isn\'t in protect list.');
->>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
+				$sender->sendMessage('[FHiddenMine] '.TextFormat::RED.'This world isn\'t in protect list.');
 				unset($s);
 				break;
 			}
 			array_splice($this->ProtectWorlds,$s,1);
-<<<<<<< HEAD
-			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'成功把世界 '.$args[1].' 从保护列表移除');
-=======
-			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Remove successfully.');
->>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
+			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'Successful to remove world '.$args[1].' from protect list.');
 			$this->saveData();
 			unset($s);
 			break;
@@ -301,11 +281,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		case 'clear':
 			$this->ProtectWorlds=array();
 			$this->saveData();
-<<<<<<< HEAD
-			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'保护列表已清空');
-=======
-			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Clear successfully.');
->>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
+			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'Clear successfull.');
 			break;
 		default:
 			unset($sender,$cmd,$label,$args);
@@ -315,7 +291,4 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		return true;
 	}
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
