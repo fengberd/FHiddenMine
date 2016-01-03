@@ -51,10 +51,46 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 	 */
 	public function onDataPacketSend(\pocketmine\event\server\DataPacketSendEvent $event)
 	{
-		if(!$event->isCancelled() && $event->getPacket() instanceof \pocketmine\network\protocol\FullChunkDataPacket && in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds) && !$event->getPlayer()->isOp())
+		if($event->isCancelled() || $event->getPlayer()->isOp() || !in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds))
 		{
-			$pk=$event->getPacket();
-			$level=$event->getPlayer()->getLevel();
+			unset($event);
+			return;
+		}
+		$pk=$event->getPacket();
+		$level=$event->getPlayer()->getLevel();
+		if($pk instanceof \pocketmine\network\protocol\UpdateBlockPacket)
+		{
+			foreach($pk->records as $key=>$val)
+			{
+				if(isset($val[3]) && in_array($val[3],$this->ores))
+				{
+					$replace=true;
+					foreach(array(
+						$level->getBlockIdAt($val[0]-1,$val[2],$val[1]),
+						$level->getBlockIdAt($val[0]+1,$val[2],$val[1]),
+						$level->getBlockIdAt($val[0],$val[2]-1,$val[1]),
+						$level->getBlockIdAt($val[0],$val[2]+1,$val[1]),
+						$level->getBlockIdAt($val[0],$val[2],$val[1]-1),
+						$level->getBlockIdAt($val[0],$val[2],$val[1]+1)) as $block)
+					{
+						if(in_array($block,$this->filter))
+						{
+							$replace=false;
+						}
+						unset($block);
+					}
+					if($replace)
+					{
+						$pk->records[$key][3]=0;
+						$pk->records[$key][4]=0;
+					}
+					unset($replace);
+				}
+				unset($key,$val);
+			}
+		}
+		else if($pk instanceof \pocketmine\network\protocol\FullChunkDataPacket)
+		{
 			$chunk=$level->getChunk($pk->chunkX,$pk->chunkZ,false);
 			$blocks=$chunk->getBlockIdArray();
 			for($x=0;$x<16;$x++)
@@ -149,10 +185,14 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 				$chunk->getBlockDataArray().
 				$chunk->getBlockSkyLightArray().
 				$chunk->getBlockLightArray().
-				pack("C*", ...$chunk->getHeightMapArray()).
-				pack('N*', ...$chunk->getBiomeColorArray()).
+				pack('C*',...$chunk->getHeightMapArray()).
+				pack('N*',...$chunk->getBiomeColorArray()).
 				$extraData->getBuffer().
 				$tiles;
+			if($pk->isEncoded)
+			{
+				$pk->clean();
+			}
 		}
 		unset($pk,$nbt,$event,$blocks,$chunk,$tiles,$x,$y,$z);
 	}
@@ -194,7 +234,11 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		{
 		case 'reload':
 			$this->loadConfig();
+<<<<<<< HEAD
+			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'重载完成');
+=======
 			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Reload successfully.');
+>>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
 			break;
 		case 'add':
 			if(!isset($args[1]))
@@ -204,11 +248,19 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 			}
 			if(in_array($args[1],$this->ProtectWorlds))
 			{
+<<<<<<< HEAD
+				$sender->sendMessage('[FHiddenMine] '.TextFormat::RED.'该世界已在假矿保护列表中');
+=======
 				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] This world already in protect list.');
+>>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
 				break;
 			}
 			$this->ProtectWorlds[]=$args[1];
+<<<<<<< HEAD
+			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'成功把世界 '.$args[1].' 添加到假矿保护列表');
+=======
 			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Add successfully.');
+>>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
 			$this->saveData();
 			break;
 		case 'remove':
@@ -219,12 +271,20 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 			}
 			if(($s=array_search($args[1],$this->ProtectWorlds))===false)
 			{
+<<<<<<< HEAD
+				$sender->sendMessage('[FHiddenMine] '.TextFormat::RED.'该世界不在假矿保护列表中');
+=======
 				$sender->sendMessage(TextFormat::RED.'[FHiddenMine] This world isn\'t in protect list.');
+>>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
 				unset($s);
 				break;
 			}
 			array_splice($this->ProtectWorlds,$s,1);
+<<<<<<< HEAD
+			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'成功把世界 '.$args[1].' 从保护列表移除');
+=======
 			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Remove successfully.');
+>>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
 			$this->saveData();
 			unset($s);
 			break;
@@ -241,7 +301,11 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		case 'clear':
 			$this->ProtectWorlds=array();
 			$this->saveData();
+<<<<<<< HEAD
+			$sender->sendMessage('[FHiddenMine] '.TextFormat::GREEN.'保护列表已清空');
+=======
 			$sender->sendMessage(TextFormat::GREEN.'[FHiddenMine] Clear successfully.');
+>>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
 			break;
 		default:
 			unset($sender,$cmd,$label,$args);
@@ -251,3 +315,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		return true;
 	}
 }
+<<<<<<< HEAD
+
+=======
+>>>>>>> branch 'master' of https://git.coding.net/u/FENGberd/p/FHiddenMine/git
