@@ -5,9 +5,9 @@
 4.使用中出现问题请不要找我<br />
 5.我知道<font size=5 color='red'>说了白说</font>但还是想说一下,小天才不遵守上面几条请自行右上角
 
-# FHiddenMine
+# Description
 It's the best plugin to hide ores and make x-ray modscript be invalid.<br />
-It can check and hide the ores under the Y position you set when PocketMine sending a chunk to players(This plugin will be disabled for administrators).(default:48)
+This plugin check and hide ores that under the Y position you set when PocketMine sending a chunk to players(Disabled for ops).(default:64)
 
 # Commands
 /hidemine - Display help message<br />
@@ -18,7 +18,6 @@ It can check and hide the ores under the Y position you set when PocketMine send
 
 # <font size=30 color='red'>WARNING</font>
 You should edit pocketmine.yml else this plugin will not work.
-
 ```yaml
 #...
 network:
@@ -34,9 +33,7 @@ If you do,your world will be broken!<br />
 (Anvil world file is *.mca,and MCRegion world file is *.mcr,this plugin can only work with MCRegion worlds)
 
 # Other
-You'd better add follow codes into the beganning of function 'requestChunk' in Level.php.
-It may let your server run faster.
-
+Add follow codes into the beganning of function 'requestChunk' in Level.php may make your server run faster.
 ```php
 if(!$player->isOp() && in_array($this->getFolderName(),\FHiddenMine\Main::getInstance()->ProtectWorlds))
 {
