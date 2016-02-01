@@ -9,13 +9,10 @@ use pocketmine\utils\TextFormat;
 class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Listener
 {
 	private static $obj=null;
-	public static $NL="\n";
 	
-	public $ores=array(14,15,16,21,56,73,74,129);
-	public $filter=array(0,8,9,10,11,20,26,27,30,31,32,37,38,39,40,44,50,63,64,65,66,68,71,81,83,85,96,101,102,104,105,106,107,126,141,142);
 	public $ProtectWorlds=array();
-	public $scanHeight=48;
-	public $batchPacket=false;
+	
+	private $processThread=null;
 	
 	public static function getInstance()
 	{
@@ -28,8 +25,20 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		{
 			self::$obj=$this;
 		}
+		$this->processThread=new BlockProcessThread();
+		$this->processThread->start();
+		
 		$this->loadConfig();
+		
+		$this->systemTask=new SystemTask($this);
+		$this->getServer()->getScheduler()->scheduleRepeatingTask($this->systemTask,1);
+		
 		$this->getServer()->getPluginManager()->registerEvents($this,$this);
+	}
+	
+	public function onDisable()
+	{
+		$this->processThread->close();
 	}
 	
 	public function loadConfig()
@@ -37,17 +46,19 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		@mkdir($this->getDataFolder(),0777,true);
 		$this->config=new Config($this->getDataFolder().'config.yml',Config::YAML,array());
 		
-		$this->batchPacket=$this->config->get('batchPacket',$this->batchPacket)=='true';
-		$this->scanHeight=min(127,max(1,$this->config->get('scanHeight',$this->scanHeight)));
-		$this->ores=$this->config->get('ores',$this->ores);
-		$this->filter=$this->config->get('filter',$this->filter);
+		$this->processThread->batchPacket=intval($this->config->get('BatchPacket',$this->processThread->batchPacket));
+		$this->processThread->scanHeight=min(127,max(1,$this->config->get('ScanHeight',$this->processThread->scanHeight)));
+		$this->processThread->showBorder=$this->config->get('ShowChunkBorderMine',$this->processThread->showBorder)=='true';
+		$this->processThread->ores=$this->config->get('Ores',$this->processThread->ores);
+		$this->processThread->filter=$this->config->get('Filter',$this->processThread->filter);
 		$this->ProtectWorlds=$this->config->get('ProtectWorlds',$this->ProtectWorlds);
 		
 		$this->config->setAll(array(
-			'scanHeight'=>$this->scanHeight,
-			'batchPacket'=>$this->batchPacket,
-			'ores'=>$this->ores,
-			'filter'=>$this->filter,
+			'ShowChunkBorderMine'=>$this->processThread->showBorder,
+			'ScanHeight'=>$this->processThread->scanHeight,
+			'BatchPacket'=>$this->processThread->batchPacket,
+			'Ores'=>$this->processThread->ores,
+			'Filter'=>$this->processThread->filter,
 			'ProtectWorlds'=>$this->ProtectWorlds));
 		$this->config->save();
 	}
@@ -68,7 +79,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		{
 			foreach($pk->records as $key=>$val)
 			{
-				if(isset($val[3]) && in_array($val[3],$this->ores))
+				if(isset($val[3]) && in_array($val[3],$this->processThread->ores))
 				{
 					$replace=true;
 					foreach(array(
@@ -79,7 +90,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 						$level->getBlockIdAt($val[0],$val[2],$val[1]-1),
 						$level->getBlockIdAt($val[0],$val[2],$val[1]+1)) as $block)
 					{
-						if(in_array($block,$this->filter))
+						if(in_array($block,$this->processThread->filter))
 						{
 							$replace=false;
 						}
@@ -95,73 +106,10 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 				unset($key,$val);
 			}
 		}
-		else if($pk instanceof \pocketmine\network\protocol\FullChunkDataPacket)
+		else if($pk instanceof \pocketmine\network\protocol\FullChunkDataPacket && !isset($pk->hiddenMineProcessed))
 		{
+			$event->setCancelled();
 			$chunk=$level->getChunk($pk->chunkX,$pk->chunkZ,false);
-			$blocks=$chunk->getBlockIdArray();
-			for($x=0;$x<16;$x++)
-			{
-				for($z=0;$z<16;$z++)
-				{
-					for($y=1;$y<$this->scanHeight;$y++)
-					{
-						if(in_array(ord($blocks{($x << 11) | ($z << 7) | $y}),$this->ores))
-						{
-							$ids=array();
-							if($x>14)
-							{
-								$ids[]=$level->getBlockIdAt($pk->chunkX*16+$x+1,$y,$pk->chunkZ*16+$z);
-							}
-							else
-							{
-								$ids[]=ord($blocks{($x+1 << 11) | ($z << 7) | $y});
-							}
-							if($x<1)
-							{
-								$ids[]=$level->getBlockIdAt($pk->chunkX*16+$x-1,$y,$pk->chunkZ*16+$z);
-							}
-							else
-							{
-								$ids[]=ord($blocks{($x-1 << 11) | ($z << 7) | $y});
-							}
-							$ids[]=ord($blocks{($x << 11) | ($z << 7) | $y+1});
-							$ids[]=ord($blocks{($x << 11) | ($z << 7) | $y-1});
-							if($z>14)
-							{
-								$ids[]=$level->getBlockIdAt($pk->chunkX*16+$x,$y,$pk->chunkZ*16+$z+1);
-							}
-							else
-							{
-								$ids[]=ord($blocks{($x << 11) | ($z+1 << 7) | $y});
-							}
-							if($z<1)
-							{
-								$ids[]=$level->getBlockIdAt($pk->chunkX*16+$x,$y,$pk->chunkZ*16+$z-1);
-							}
-							else
-							{
-								$ids[]=ord($blocks{($x << 11) | ($z-1 << 7) | $y});
-							}
-							$have=false;
-							foreach($ids as $i)
-							{
-								if(in_array($i,$this->filter))
-								{
-									$have=true;
-									unset($i);
-									break;
-								}
-								unset($i);
-							}
-							if(!$have)
-							{
-								$blocks{($x << 11) | ($z << 7) | $y}=chr(1);
-							}
-							unset($ids);
-						}
-					}
-				}
-			}
 			$tiles='';
 			if(count($chunk->getTiles())>0)
 			{
@@ -187,29 +135,39 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 				$extraData->putLShort($value);
 				unset($key,$value);
 			}
-			$pk->data=$blocks.
+			$this->processThread->addRequest(array(
+				$event->getPlayer()->getName(),
+				$pk->chunkX,
+				$pk->chunkZ,
+				$chunk->getBlockIdArray(),
 				$chunk->getBlockDataArray().
-				$chunk->getBlockSkyLightArray().
-				$chunk->getBlockLightArray().
-				pack('C*',...$chunk->getHeightMapArray()).
-				pack('N*',...$chunk->getBiomeColorArray()).
-				$extraData->getBuffer().
-				$tiles;
-			if($pk->isEncoded)
-			{
-				$pk->clean();
-			}
-			if($this->batchPacket)
-			{
-				$pk->encode();
-				$batch=new \pocketmine\network\protocol\BatchPacket();
-				$batch->payload=zlib_encode(\raklib\Binary::writeInt(strlen($pk->getBuffer())).$pk->getBuffer(),ZLIB_ENCODING_DEFLATE,\pocketmine\Server::getInstance()->networkCompressionLevel);
-				$event->setCancelled();
-				$event->getPlayer()->dataPacket($batch);
-				unset($batch);
-			}
+					$chunk->getBlockSkyLightArray().
+					$chunk->getBlockLightArray().
+					pack('C*',...$chunk->getHeightMapArray()).
+					pack('N*',...$chunk->getBiomeColorArray()).
+					$extraData->getBuffer().
+					$tiles));
 		}
 		unset($pk,$nbt,$event,$blocks,$chunk,$tiles,$x,$y,$z);
+	}
+	
+	public function systemTaskCallback($currentTick)
+	{
+		while(is_array($result=$this->processThread->takeResult()))
+		{
+			if(($player=$this->getServer()->getPlayerExact($result[0]))!==null)
+			{
+				$result[1]='\\pocketmine\\network\\protocol\\'.$result[1];
+				$pk=new $result[1]();
+				$pk->buffer=$result[2];
+				$pk->isEncoded=true;
+				$pk->hiddenMineProcessed=true;
+				$player->dataPacket($pk);
+				unset($pk);
+			}
+			unset($result,$player);
+		}
+		unset($currentTick);
 	}
 	
 	public function saveData()
@@ -287,10 +245,10 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 			$ls='';
 			foreach($this->ProtectWorlds as $val)
 			{
-				$ls.=TextFormat::YELLOW.'- '.$val.self::$NL;
+				$ls.=TextFormat::YELLOW.'- '.$val."\n";
 				unset($val);
 			}
-			$sender->sendMessage(TextFormat::GREEN.'======'.TextFormat::YELLOW.'Protect List'.TextFormat::GREEN.'======'.self::$NL.$ls.TextFormat::GREEN.'========================');
+			$sender->sendMessage(TextFormat::GREEN.'======'.TextFormat::YELLOW.'Protect List'.TextFormat::GREEN."======\n".$ls.TextFormat::GREEN.'========================');
 			unset($ls);
 			break;
 		case 'clear':

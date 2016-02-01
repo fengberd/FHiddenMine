@@ -21,3 +21,16 @@ You should set "chunk-sending.cache-chunks" to false in pocketmine.yml else this
 Don't add any worlds format <font color='red'>NOT MCRegion</font> in protect list!<br />
 If you do,your world will be broken!<br />
 (Anvil world file is *.mca,and MCRegion world file is *.mcr,this plugin can only work with MCRegion worlds)
+
+# Other
+You'd better add follow codes into the beganning of function 'requestChunk' in Level.php.
+It may let your server run faster.
+
+```php
+if(!$player->isOp() && in_array($this->getFolderName(),\FHiddenMine\Main::getInstance()->ProtectWorlds))
+{
+	$player->sendChunk($x,$z,'');
+	return;
+}
+```
+
