@@ -181,7 +181,6 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 	 */
 	public function onBlockBreak(\pocketmine\event\block\BlockBreakEvent $event)
 	{
-		return;
 		if(!$event->isCancelled() && in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds))
 		{
 			$pos=$event->getBlock();
