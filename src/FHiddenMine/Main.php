@@ -49,16 +49,16 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		$this->processThread->batchPacket=intval($this->config->get('BatchPacket',$this->processThread->batchPacket));
 		$this->processThread->scanHeight=min(127,max(1,$this->config->get('ScanHeight',$this->processThread->scanHeight)));
 		$this->processThread->showBorder=$this->config->get('ShowChunkBorderMine',$this->processThread->showBorder)=='true';
-		$this->processThread->ores=$this->config->get('Ores',$this->processThread->ores);
-		$this->processThread->filter=$this->config->get('Filter',$this->processThread->filter);
+		$this->processThread->ores=serialize($this->config->get('Ores',unserialize($this->processThread->ores)));
+		$this->processThread->filter=serialize($this->config->get('Filter',unserialize($this->processThread->filter)));
 		$this->ProtectWorlds=$this->config->get('ProtectWorlds',$this->ProtectWorlds);
 		
 		$this->config->setAll(array(
 			'ShowChunkBorderMine'=>$this->processThread->showBorder,
 			'ScanHeight'=>$this->processThread->scanHeight,
 			'BatchPacket'=>$this->processThread->batchPacket,
-			'Ores'=>$this->processThread->ores,
-			'Filter'=>$this->processThread->filter,
+			'Ores'=>unserialize($this->processThread->ores),
+			'Filter'=>unserialize($this->processThread->filter),
 			'ProtectWorlds'=>$this->ProtectWorlds));
 		$this->config->save();
 	}
@@ -79,7 +79,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 		{
 			foreach($pk->records as $key=>$val)
 			{
-				if(isset($val[3]) && in_array($val[3],$this->processThread->ores))
+				if(isset($val[3]) && in_array($val[3],unserialize($this->processThread->ores)))
 				{
 					$replace=true;
 					foreach(array(
@@ -90,7 +90,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 						$level->getBlockIdAt($val[0],$val[2],$val[1]-1),
 						$level->getBlockIdAt($val[0],$val[2],$val[1]+1)) as $block)
 					{
-						if(in_array($block,$this->processThread->filter))
+						if(in_array($block,unserialize($this->processThread->filter)))
 						{
 							$replace=false;
 						}
@@ -181,6 +181,7 @@ class Main extends \pocketmine\plugin\PluginBase implements \pocketmine\event\Li
 	 */
 	public function onBlockBreak(\pocketmine\event\block\BlockBreakEvent $event)
 	{
+		return;
 		if(!$event->isCancelled() && in_array($event->getPlayer()->getLevel()->getFolderName(),$this->ProtectWorlds))
 		{
 			$pos=$event->getBlock();

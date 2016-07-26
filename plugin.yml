@@ -1,6 +1,6 @@
 name: FHiddenMine
 main: FHiddenMine\Main
-version: 1.0.8
+version: 1.0.9
 api: [1.0.0]
 load: POSTWORLD
 author: FENGberd

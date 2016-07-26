@@ -6,40 +6,50 @@ class BlockProcessThread extends \Thread
 	public $scanHeight=64;
 	public $batchPacket=0;
 	public $showBorder=false;
-	public $ores=array(14,15,16,21,56,73,74,129);
-	public $filter=array(0,8,9,10,11,20,26,27,30,31,32,37,38,39,40,44,50,63,64,65,66,68,71,81,83,85,96,101,102,104,105,106,107,126,141,142);
+	
+	public $ores;
+	public $filter;
 	
 	private $keep=true;
 	
-	private $requests=array();
-	private $results=array();
+	private $requests;
+	private $results;
+	
+	public function __construct()
+	{
+		$this->ores=serialize(array(14,15,16,21,56,73,74,129));
+		$this->filter=serialize(array(0,8,9,10,11,20,26,27,30,31,32,37,38,39,40,44,50,63,64,65,66,68,71,81,83,85,96,101,102,104,105,106,107,126,141,142));
+		
+		$this->requests=serialize(array());
+		$this->results=serialize(array());
+	}
 	
 	public function addRequest(array $data)
 	{
-		$this->requests=array_merge($this->requests,array($data));
+		$this->requests=serialize(array_merge(unserialize($this->requests),array($data)));
 		unset($data);
 	}
 	
 	private function takeRequest()
 	{
-		$data=$this->requests;
+		$data=unserialize($this->requests);
 		$result=array_shift($data);
-		$this->requests=$data;
+		$this->requests=serialize($data);
 		unset($data);
 		return $result;
 	}
 	
 	private function addResult(array $data)
 	{
-		$this->results=array_merge($this->results,array($data));
+		$this->results=serialize(array_merge(unserialize($this->results),array($data)));
 		unset($data);
 	}
 	
 	public function takeResult()
 	{
-		$data=$this->results;
+		$data=unserialize($this->results);
 		$result=array_shift($data);
-		$this->results=$data;
+		$this->results=serialize($data);
 		unset($data);
 		return $result;
 	}
@@ -61,6 +71,8 @@ class BlockProcessThread extends \Thread
 			}
 			$start=microtime(true);
 			$blocks=$request[3];
+			$ores=unserialize($this->ores);
+			$filter=unserialize($this->filter);
 			for($x=0;$x<16;$x++)
 			{
 				if($x>14 && $this->showBorder)
@@ -75,7 +87,7 @@ class BlockProcessThread extends \Thread
 					}
 					for($y=1;$y<$this->scanHeight;$y++)
 					{
-						if(in_array(ord($blocks{($x << 11) | ($z << 7) | $y}),$this->ores))
+						if(in_array(ord($blocks{($x << 11) | ($z << 7) | $y}),$ores))
 						{
 							$ids=array();
 							if($x>14)
@@ -115,7 +127,7 @@ class BlockProcessThread extends \Thread
 							$have=false;
 							foreach($ids as $i)
 							{
-								if(in_array($i,$this->filter))
+								if(in_array($i,$filter))
 								{
 									$have=true;
 									unset($i);
@@ -125,7 +137,7 @@ class BlockProcessThread extends \Thread
 							}
 							if(!$have)
 							{
-								$blocks{($x << 11) | ($z << 7) | $y}=chr(1);
+								$blocks{($x << 11) | ($z << 7) | $y}="\x01";
 							}
 							unset($ids,$have);
 						}
